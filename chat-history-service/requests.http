@@ -1,0 +1,81 @@
+### Chat History Service — примеры запросов
+@host = http://localhost:8083
+@groupChat = group-abc
+@channel = channel-xyz
+@ivan = user-ivan
+@maria = user-maria
+
+### --- Сохранение сообщений (internal, вызывает Messaging Service) ---
+
+### 1. Иван пишет в групповой чат -> seq=1
+# @name msg1
+POST {{host}}/internal/messages
+Content-Type: application/json
+
+{
+  "chatType": "GROUP",
+  "chatId": "{{groupChat}}",
+  "senderId": "{{ivan}}",
+  "text": "Привет, это первое сообщение"
+}
+
+### 2. Мария отвечает в тот же чат -> seq=2
+POST {{host}}/internal/messages
+Content-Type: application/json
+
+{
+  "chatType": "GROUP",
+  "chatId": "{{groupChat}}",
+  "senderId": "{{maria}}",
+  "text": "Привет! Второе сообщение"
+}
+
+### 3. Иван пишет ещё -> seq=3
+POST {{host}}/internal/messages
+Content-Type: application/json
+
+{
+  "chatType": "GROUP",
+  "chatId": "{{groupChat}}",
+  "senderId": "{{ivan}}",
+  "text": "Третье сообщение"
+}
+
+### 4. Сообщение в канал (отдельный chatId -> своя нумерация seq=1)
+POST {{host}}/internal/messages
+Content-Type: application/json
+
+{
+  "chatType": "CHANNEL",
+  "chatId": "{{channel}}",
+  "senderId": "{{ivan}}",
+  "text": "Анонс в канале"
+}
+
+### 5. Пустой текст -> 400 VALIDATION_ERROR
+POST {{host}}/internal/messages
+Content-Type: application/json
+
+{
+  "chatType": "GROUP",
+  "chatId": "{{groupChat}}",
+  "senderId": "{{ivan}}",
+  "text": ""
+}
+
+### --- Курсорная выдача истории (внешний API) ---
+
+### 6. Последние сообщения группы (новейшие сверху)
+GET {{host}}/api/chats/{{groupChat}}/messages
+
+### 7. С лимитом 2 (страница 1) -> вернёт seq 3,2; nextBeforeSeq=2, hasMore=true
+GET {{host}}/api/chats/{{groupChat}}/messages?limit=2
+
+### 8. Следующая (более старая) страница по курсору -> seq 1
+GET {{host}}/api/chats/{{groupChat}}/messages?limit=2&beforeSeq=2
+
+### 9. История канала (своя нумерация)
+GET {{host}}/api/chats/{{channel}}/messages
+
+### 10. История неизвестного чата -> пустой список (не 404)
+GET {{host}}/api/chats/no-such-chat/messages

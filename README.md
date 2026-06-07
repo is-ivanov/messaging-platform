@@ -12,7 +12,7 @@
 |---|---|---|
 | `users-service` | 8081 | ✅ реализован |
 | `groups-channels-service` | 8082 | ✅ реализован |
-| `chat-history-service` | 8083 | ⏳ план |
+| `chat-history-service` | 8083 | ✅ реализован |
 | `messaging-service` | 8084 | ⏳ план |
 | `web-app-service` | 8080 | ⏳ опционально |
 
@@ -46,6 +46,20 @@ mvn -pl groups-channels-service spring-boot:run
 
 > Группа/приватный чат создаётся лениво через `/internal/groups/resolve` (нет публичного createGroup,
 > как и в API на слайде 29). Приватный чат 1-на-1 = группа из двух участников.
+
+## Запуск Chat History Service
+```bash
+mvn -pl chat-history-service spring-boot:run
+```
+- Internal (для Messaging Service): `POST /internal/messages` — сохранить сообщение, вернуть `messageId`, `seq`, `timestamp`
+- Внешний API: `GET /api/chats/{chatId}/messages?limit=20&beforeSeq=` — курсорная история (новейшие сверху)
+- H2-консоль: http://localhost:8083/h2-console (`jdbc:h2:file:./data/chats-db;AUTO_SERVER=TRUE`)
+- Документ `chat_history` по слайду 78: `message_id`, `chat_type`+`chat_id` (= `group_id | channel_id`), `sender_id`, `timestamp`, `text`, плюс `seq`
+- Compound-индекс `(chat_id, seq)` — аналог слайдов 144–146; курсор `beforeSeq` даёт пагинацию без N+1
+- Примеры запросов — `chat-history-service/requests.http`
+
+> `group_id | channel_id` со слайда сведены к паре `(chatType, chatId)` — единый ключ партиции
+> (вариант из плана §4.3). `senderId` передаёт доверенный Messaging Service из auth-контекста.
 
 ## Конвенции (из курса)
 - WebSocket-конверт `{ "type": ..., "payload": ... }`.
