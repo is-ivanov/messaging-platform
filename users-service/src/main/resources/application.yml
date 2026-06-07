@@ -1,0 +1,24 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: users-service
+  datasource:
+    # H2 в файловом режиме: данные на диске, переживают рестарт.
+    # AUTO_SERVER=TRUE позволяет одновременно открыть БД приложением и H2-консолью.
+    url: jdbc:h2:file:./data/users-db;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  h2:
+    console:
+      enabled: true          # http://localhost:8081/h2-console
+      path: /h2-console

@@ -1,0 +1,96 @@
+### Users Service — примеры запросов (IntelliJ HTTP Client / VS Code REST Client)
+### Данные как в таблице users на слайде 59 (first_name / last_name отдельно).
+@host = http://localhost:8081
+
+### 1. Регистрация Ивана Петрова
+# @name signupIvan
+POST {{host}}/api/users/signup
+Content-Type: application/json
+
+{
+  "firstName": "Иван",
+  "lastName": "Петров",
+  "username": "ivan_petrov",
+  "password": "secret123",
+  "profileImage": "https://example.com/ivan.png"
+}
+
+> {% client.global.set("ivanToken", response.body.authToken);
+   client.global.set("ivanId", response.body.userId); %}
+
+### 2. Регистрация Марии Ивановой
+# @name signupMaria
+POST {{host}}/api/users/signup
+Content-Type: application/json
+
+{
+  "firstName": "Мария",
+  "lastName": "Иванова",
+  "username": "maria_ivanova",
+  "password": "secret123"
+}
+
+> {% client.global.set("mariaId", response.body.userId); %}
+
+### 3. Логин Ивана
+POST {{host}}/api/users/login
+Content-Type: application/json
+
+{
+  "username": "ivan_petrov",
+  "password": "secret123"
+}
+
+### 4. Поиск пользователя по username
+GET {{host}}/api/users/search?username=maria_ivanova
+
+### 5. Профиль по id
+GET {{host}}/api/users/{{ivanId}}
+
+### --- Внутренние эндпоинты (для других сервисов) ---
+
+### 6. Валидация токена -> userId
+POST {{host}}/internal/auth/validate
+Content-Type: application/json
+
+{
+  "token": "{{ivanToken}}"
+}
+
+### 7. Сменить статус на ONLINE (вызывает Messaging Service)
+POST {{host}}/internal/users/{{ivanId}}/status
+Content-Type: application/json
+
+{
+  "status": "ONLINE"
+}
+
+### 8. Batch профилей (для homepage)
+POST {{host}}/internal/users/batch
+Content-Type: application/json
+
+{
+  "ids": ["{{ivanId}}", "{{mariaId}}"]
+}
+
+### --- Негативные кейсы ---
+
+### 9. Дубль username -> 409
+POST {{host}}/api/users/signup
+Content-Type: application/json
+
+{
+  "firstName": "Иван",
+  "lastName": "Клон",
+  "username": "ivan_petrov",
+  "password": "secret123"
+}
+
+### 10. Неверный пароль -> 401
+POST {{host}}/api/users/login
+Content-Type: application/json
+
+{
+  "username": "ivan_petrov",
+  "password": "wrong"
+}

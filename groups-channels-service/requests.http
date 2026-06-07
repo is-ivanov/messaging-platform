@@ -1,0 +1,83 @@
+### Groups & Channels Service — примеры запросов
+@host = http://localhost:8082
+@ivan = user-ivan
+@maria = user-maria
+@petr = user-petr
+
+### --- Каналы (внешний API) ---
+
+### 1. Иван создаёт канал (владелец из X-User-Id)
+# @name createChannel
+POST {{host}}/api/channels
+Content-Type: application/json
+X-User-Id: {{ivan}}
+
+{
+  "channelName": "Announcements"
+}
+
+> {% client.global.set("channelId", response.body.channelId); %}
+
+### 2. Мария подписывается на канал
+POST {{host}}/api/channels/{{channelId}}/join
+X-User-Id: {{maria}}
+
+### 3. Подписчики канала (internal, для Messaging Service)
+GET {{host}}/internal/channels/{{channelId}}/subscribers
+
+### 4. join несуществующего канала -> 404
+POST {{host}}/api/channels/no-such-channel/join
+X-User-Id: {{maria}}
+
+### 5. create без X-User-Id -> 400
+POST {{host}}/api/channels
+Content-Type: application/json
+
+{
+  "channelName": "Orphan"
+}
+
+### --- Группы (internal, lazy-resolve) ---
+
+### 6. resolve приватного чата 1-на-1 (Иван + Мария)
+# @name resolveDirect
+POST {{host}}/internal/groups/resolve
+Content-Type: application/json
+
+{
+  "participantIds": ["{{ivan}}", "{{maria}}"]
+}
+
+> {% client.global.set("directGroupId", response.body.groupId); %}
+
+### 7. resolve того же чата в обратном порядке -> тот же groupId, created=false
+POST {{host}}/internal/groups/resolve
+Content-Type: application/json
+
+{
+  "participantIds": ["{{maria}}", "{{ivan}}"]
+}
+
+### 8. resolve групповой чат (3 участника) -> новый groupId
+POST {{host}}/internal/groups/resolve
+Content-Type: application/json
+
+{
+  "participantIds": ["{{ivan}}", "{{maria}}", "{{petr}}"]
+}
+
+### 9. участники приватной группы (internal)
+GET {{host}}/internal/groups/{{directGroupId}}/members
+
+### 10. resolve с 1 участником -> 400
+POST {{host}}/internal/groups/resolve
+Content-Type: application/json
+
+{
+  "participantIds": ["{{ivan}}"]
+}
+
+### --- Homepage ---
+
+### 11. чаты Ивана (группы + каналы)
+GET {{host}}/api/users/{{ivan}}/chats
