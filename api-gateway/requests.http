@@ -1,0 +1,44 @@
+### API Gateway (порт 8080) — единая точка входа
+### Всё ходит через 8080. Подними весь стек (см. README, раздел "Запуск API Gateway").
+
+### 1. Signup (публичный путь — без токена) -> {authToken, userId}
+POST http://localhost:8080/api/users/signup
+Content-Type: application/json
+
+{ "firstName": "Alice", "lastName": "A", "username": "alice", "password": "password123" }
+
+### 2. Login (публичный) -> {authToken, userId}
+POST http://localhost:8080/api/users/login
+Content-Type: application/json
+
+{ "username": "alice", "password": "password123" }
+
+### 3. БЕЗ токена -> 401 от шлюза
+GET http://localhost:8080/api/users/search?username=alice
+
+### 4. С токеном -> маршрут в Users (подставь authToken из login)
+GET http://localhost:8080/api/users/search?username=alice
+Authorization: Bearer ЗАМЕНИ_НА_authToken
+
+### 5. Создать канал — owner берётся из токена (шлюз пробрасывает X-User-Id), НЕ из тела
+POST http://localhost:8080/api/channels
+Content-Type: application/json
+Authorization: Bearer ЗАМЕНИ_НА_authToken
+
+{ "channelName": "Новости проекта" }
+
+### 6. Чаты пользователя -> маршрут в Groups&Channels (приоритет над /api/users/**)
+GET http://localhost:8080/api/users/ЗАМЕНИ_НА_userId/chats
+Authorization: Bearer ЗАМЕНИ_НА_authToken
+
+### 7. Homepage -> web-app агрегирует (чаты + превью)
+GET http://localhost:8080/api/homepage
+Authorization: Bearer ЗАМЕНИ_НА_authToken
+
+### 8. История чата -> маршрут в Chat History
+GET http://localhost:8080/api/chats/ЗАМЕНИ_НА_chatId/messages?limit=20
+Authorization: Bearer ЗАМЕНИ_НА_authToken
+
+### WebSocket через шлюз (нужен WS-клиент, не .http):
+# ws://localhost:8080/ws?token=<authToken>  -> проксируется в messaging-server (8084)
+# битый токен -> 401 на handshake (шлюз валидирует; messaging-server перепроверяет)

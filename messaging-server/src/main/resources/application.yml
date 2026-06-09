@@ -1,0 +1,16 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: messaging-server
+
+app:
+  # Адрес, по которому Connection Management достучится до ЭТОГО инстанса для доставки
+  # (/internal/deliver). Для второго инстанса переопределить на http://localhost:8085.
+  server-url: http://localhost:8084
+
+# Зависимые сервисы (внутренние вызовы через RestClient).
+services:
+  users-url: http://localhost:8081
+  connection-management-url: http://localhost:8090

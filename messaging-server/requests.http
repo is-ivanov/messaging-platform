@@ -1,0 +1,30 @@
+### Messaging Server — тонкий WebSocket-слой (порты 8084, 8085)
+### Требует запущенных: users (8081), connection-management (8090),
+### а CM в свою очередь — groups-channels (8082) и chat-history (8083).
+
+### Запуск двух инстансов:
+#   mvn -pl messaging-server spring-boot:run
+#   mvn -pl messaging-server spring-boot:run -Dspring-boot.run.arguments="--server.port=8085 --app.server-url=http://localhost:8085"
+
+### --- WebSocket (не тестируется через .http; нужен WS-клиент) ---
+# ws://localhost:8084/ws?token=<authToken>   — подключение (токен из users signup/login)
+# Клиент -> сервер:  { "type": "SEND_DIRECT",  "payload": { "toUserId": "<id>", "text": "..." } }
+#                    { "type": "SEND_GROUP",   "payload": { "chatId": "<id>",  "text": "..." } }
+#                    { "type": "SEND_CHANNEL", "payload": { "chatId": "<id>",  "text": "..." } }
+# Сервер -> клиент:  { "type": "ACK",     "payload": { "chatId": "...", "seq": 1 } }
+#                    { "type": "MESSAGE", "payload": { "chatId":"...", "senderId":"...", "text":"...", "createdAt":"...", "seq": 1 } }
+#                    { "type": "ERROR",   "payload": { "message": "..." } }
+
+### --- HTTP отладочная отправка 1-на-1 (без WS-клиента) ---
+### senderId — из заголовка X-User-Id (имитация auth за шлюзом)
+POST http://localhost:8084/api/messages/direct
+Content-Type: application/json
+X-User-Id: <senderUserId>
+
+{ "toUserId": "<recipientUserId>", "text": "Привет через HTTP-debug!" }
+
+### --- Internal (его зовёт Connection Management, вручную обычно не дёргают) ---
+POST http://localhost:8084/internal/deliver
+Content-Type: application/json
+
+{ "recipientUserId": "<id>", "chatId": "c1", "chatType": "GROUP", "senderId": "s1", "text": "test", "timestamp": "2026-06-09T12:00:00Z", "seq": 1 }

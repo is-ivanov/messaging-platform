@@ -1,0 +1,11 @@
+server:
+  port: 8088
+
+spring:
+  application:
+    name: web-app-service
+
+# Зависимые сервисы (внутренние вызовы через RestClient).
+services:
+  groups-channels-url: http://localhost:8082
+  chat-history-url: http://localhost:8083

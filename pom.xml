@@ -27,6 +27,10 @@
         <module>users-service</module>
         <module>groups-channels-service</module>
         <module>chat-history-service</module>
+        <module>connection-management</module>
+        <module>messaging-server</module>
+        <module>web-app-service</module>
+        <module>api-gateway</module>
     </modules>
 
 </project>

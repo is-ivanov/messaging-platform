@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Messaging Platform — тест WebSocket</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 820px; margin: 24px auto; padding: 0 16px; }
+    fieldset { margin-bottom: 16px; }
+    label { display: inline-block; min-width: 110px; }
+    input, select, button { padding: 6px; margin: 3px 0; }
+    input[type=text] { width: 380px; }
+    #log { background:#111; color:#0f0; font-family: monospace; font-size:12px;
+           height: 300px; overflow:auto; padding: 8px; white-space: pre-wrap; border-radius:6px; }
+    .in  { color:#6cf; } .out { color:#fd6; } .err { color:#f66; } .sys { color:#999; }
+    #status { font-weight:bold; }
+  </style>
+</head>
+<body>
+  <h2>Messaging Platform — ручной тест WebSocket</h2>
+  <p class="sys">Токен получи через <code>POST /api/users/login</code> или <code>/signup</code>.
+     WS-URL по умолчанию идёт через API Gateway (8080); можно указать инстанс напрямую (8084/8085).</p>
+
+  <fieldset>
+    <legend>Подключение</legend>
+    <div><label>WS URL</label><input id="wsUrl" type="text" value="ws://localhost:8080/ws"></div>
+    <div><label>token</label><input id="token" type="text" placeholder="authToken из login/signup"></div>
+    <button id="connectBtn">Connect</button>
+    <button id="disconnectBtn" disabled>Disconnect</button>
+    <span id="status" class="sys">отключено</span>
+  </fieldset>
+
+  <fieldset>
+    <legend>Отправка</legend>
+    <div><label>type</label>
+      <select id="type">
+        <option value="SEND_DIRECT">SEND_DIRECT</option>
+        <option value="SEND_GROUP">SEND_GROUP</option>
+        <option value="SEND_CHANNEL">SEND_CHANNEL</option>
+      </select>
+    </div>
+    <div><label>toUserId</label><input id="toUserId" type="text" placeholder="для SEND_DIRECT"></div>
+    <div><label>chatId</label><input id="chatId" type="text" placeholder="для SEND_GROUP / SEND_CHANNEL"></div>
+    <div><label>text</label><input id="text" type="text" value="Привет!"></div>
+    <button id="sendBtn" disabled>Send</button>
+  </fieldset>
+
+  <h3>Лог</h3>
+  <div id="log"></div>
+  <button id="clearBtn">Очистить лог</button>
+
+<script>
+  let ws = null;
+  const $ = id => document.getElementById(id);
+  function log(cls, msg) {
+    const el = $('log');
+    el.innerHTML += `<span class="${cls}">${new Date().toLocaleTimeString()}  ${msg}</span>\n`;
+    el.scrollTop = el.scrollHeight;
+  }
+  function setConnected(c) {
+    $('status').textContent = c ? 'подключено' : 'отключено';
+    $('status').className = c ? '' : 'sys';
+    $('connectBtn').disabled = c; $('disconnectBtn').disabled = !c; $('sendBtn').disabled = !c;
+  }
+
+  $('connectBtn').onclick = () => {
+    const url = $('wsUrl').value + '?token=' + encodeURIComponent($('token').value);
+    log('sys', 'connecting → ' + url);
+    ws = new WebSocket(url);
+    ws.onopen    = () => { setConnected(true); log('sys', 'OPEN'); };
+    ws.onclose   = e  => { setConnected(false); log('sys', 'CLOSE code=' + e.code); };
+    ws.onerror   = () => log('err', 'ERROR (см. консоль; вероятно 401 — проверь токен)');
+    ws.onmessage = e  => log('in', '← ' + e.data);
+  };
+  $('disconnectBtn').onclick = () => ws && ws.close();
+  $('clearBtn').onclick = () => $('log').innerHTML = '';
+
+  $('sendBtn').onclick = () => {
+    const type = $('type').value;
+    const payload = { text: $('text').value };
+    if (type === 'SEND_DIRECT') payload.toUserId = $('toUserId').value;
+    else payload.chatId = $('chatId').value;
+    const envelope = JSON.stringify({ type, payload });
+    ws.send(envelope);
+    log('out', '→ ' + envelope);
+  };
+</script>
+</body>
+</html>

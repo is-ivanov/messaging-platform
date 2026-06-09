@@ -1,0 +1,71 @@
+### Connection Management (порт 8090)
+### Требует запущенных: groups-channels (8082), chat-history (8083); users (8081) — опц. (presence best-effort)
+
+### --- Реестр соединений (KV) ---
+
+### 1. Зарегистрировать соединение: alice на сервере 8084
+PUT http://localhost:8090/internal/connections/alice
+Content-Type: application/json
+
+{ "serverUrl": "http://localhost:8084" }
+
+### 2. Зарегистрировать соединение: bob на сервере 8085 (другой сервер!)
+PUT http://localhost:8090/internal/connections/bob
+Content-Type: application/json
+
+{ "serverUrl": "http://localhost:8085" }
+
+### 3. Снимок реестра userId -> serverUrl
+GET http://localhost:8090/internal/connections
+
+### --- Маршрутизация / оркестрация ---
+
+### 4. SEND_DIRECT alice -> bob (lazy-resolve группы, store, fan-out)
+# bob зарегистрирован на 8085 (которого нет) -> попадёт в failedDelivery (демонстрация fan-out)
+POST http://localhost:8090/internal/messages/route
+Content-Type: application/json
+
+{ "senderId": "alice", "type": "SEND_DIRECT", "toUserId": "bob", "text": "Привет, Боб!" }
+
+### 5. SEND_DIRECT alice -> carol (carol офлайн, не в реестре -> offline list)
+POST http://localhost:8090/internal/messages/route
+Content-Type: application/json
+
+{ "senderId": "alice", "type": "SEND_DIRECT", "toUserId": "carol", "text": "Привет, Кэрол!" }
+
+### 6. SEND_GROUP в существующую группу (chatId подставить из ответа #4 или из groups-db)
+POST http://localhost:8090/internal/messages/route
+Content-Type: application/json
+
+{ "senderId": "alice", "type": "SEND_GROUP", "chatId": "ЗАМЕНИ_НА_groupId", "text": "Всем привет!" }
+
+### 7. SEND_CHANNEL в существующий канал (chatId = channelId)
+POST http://localhost:8090/internal/messages/route
+Content-Type: application/json
+
+{ "senderId": "alice", "type": "SEND_CHANNEL", "chatId": "ЗАМЕНИ_НА_channelId", "text": "Пост в канал" }
+
+### --- Валидация ---
+
+### 8. SEND_DIRECT без toUserId -> 400 MISSING_TO_USER
+POST http://localhost:8090/internal/messages/route
+Content-Type: application/json
+
+{ "senderId": "alice", "type": "SEND_DIRECT", "text": "нет адресата" }
+
+### 9. SEND_GROUP без chatId -> 400 MISSING_CHAT_ID
+POST http://localhost:8090/internal/messages/route
+Content-Type: application/json
+
+{ "senderId": "alice", "type": "SEND_GROUP", "text": "нет chatId" }
+
+### 10. Пустой text -> 400 VALIDATION_ERROR
+POST http://localhost:8090/internal/messages/route
+Content-Type: application/json
+
+{ "senderId": "alice", "type": "SEND_DIRECT", "toUserId": "bob", "text": "" }
+
+### --- Отключение ---
+
+### 11. Отключить alice (presence -> OFFLINE)
+DELETE http://localhost:8090/internal/connections/alice

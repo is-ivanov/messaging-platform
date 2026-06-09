@@ -1,0 +1,14 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+# Адреса бэкендов (куда маршрутизирует шлюз). Прокидываются в RouteLocator и auth-фильтр.
+services:
+  users-url: http://localhost:8081
+  groups-channels-url: http://localhost:8082
+  chat-history-url: http://localhost:8083
+  web-app-url: http://localhost:8088
+  messaging-server-url: ws://localhost:8084   # // TODO: NFR — несколько инстансов → lb / sticky session

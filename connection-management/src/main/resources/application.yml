@@ -1,0 +1,13 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: connection-management
+
+# Базовые URL зависимых сервисов (внутренние вызовы через RestClient).
+# В проде эти адреса пришли бы из service discovery; здесь — статично.
+services:
+  users-url: http://localhost:8081
+  groups-channels-url: http://localhost:8082
+  chat-history-url: http://localhost:8083
